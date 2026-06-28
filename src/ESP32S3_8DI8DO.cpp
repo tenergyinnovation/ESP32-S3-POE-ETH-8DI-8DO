@@ -1264,3 +1264,67 @@ void ESP32S3_8DI8DO::TickWhiteLED(float seconds) {
     _ledBlinking = true;
     _ledBlinkStartTime = millis();
 }
+
+// ============================================================
+// SECTION 9: RTC (REAL-TIME CLOCK) IMPLEMENTATION
+// ============================================================
+
+/***********************************************************************
+ * FUNCTION:    ESP32S3_8DI8DO::setRTC
+ * DESCRIPTION: Sets the RTC (Real-Time Clock) time on the ESP32-S3.
+ *              This configures the internal RTC with the specified date/time values.
+ *              Uses the ESP32 system time (unix epoch).
+ * PARAMETERS:  year   - Year (2000-2099)
+ *              month  - Month (1-12)
+ *              day    - Day of month (1-31)
+ *              hour   - Hour in 24-hour format (0-23)
+ *              minute - Minute (0-59)
+ *              second - Second (0-59)
+ * RETURNED:    None
+ ***********************************************************************/
+void ESP32S3_8DI8DO::setRTC(int year, int month, int day, int hour, int minute, int second) {
+    // Create a tm structure
+    struct tm timeinfo = {};
+    timeinfo.tm_year = year - 1900;      // years since 1900
+    timeinfo.tm_mon = month - 1;         // months since January (0-11)
+    timeinfo.tm_mday = day;              // day of month (1-31)
+    timeinfo.tm_hour = hour;             // hours (0-23)
+    timeinfo.tm_min = minute;            // minutes (0-59)
+    timeinfo.tm_sec = second;            // seconds (0-59)
+    timeinfo.tm_isdst = -1;              // daylight saving time flag
+
+    // Convert to time_t and set system time
+    time_t t = mktime(&timeinfo);
+    struct timeval tv;
+    tv.tv_sec = t;
+    tv.tv_usec = 0;
+    settimeofday(&tv, NULL);
+
+    Serial.printf("✓ RTC set to: %04d-%02d-%02d %02d:%02d:%02d\n", 
+                  year, month, day, hour, minute, second);
+}
+
+/***********************************************************************
+ * FUNCTION:    ESP32S3_8DI8DO::getRTC
+ * DESCRIPTION: Reads the current date and time from the ESP32-S3 RTC
+ *              and returns it as a formatted string.
+ * PARAMETERS:  None
+ * RETURNED:    String in format "YYYY-MM-DD HH:MM:SS"
+ *              Example: "2026-06-28 15:30:45"
+ ***********************************************************************/
+String ESP32S3_8DI8DO::getRTC() {
+    time_t now = time(nullptr);
+    struct tm* timeinfo = localtime(&now);
+
+    char buffer[20];
+    snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d %02d:%02d:%02d",
+             timeinfo->tm_year + 1900,
+             timeinfo->tm_mon + 1,
+             timeinfo->tm_mday,
+             timeinfo->tm_hour,
+             timeinfo->tm_min,
+             timeinfo->tm_sec);
+
+    return String(buffer);
+}
+

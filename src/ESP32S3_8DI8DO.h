@@ -3,9 +3,10 @@
  * Description  :     Unified library for ESP32-S3-POE-ETH-8DI-8DO board
  * Author       :     Tenergy Innovation Co., Ltd.
  * Date         :     28 Jun 2026
- * Revision     :     1.0.1     
+ * Revision     :     1.2.0     
  * Rev1.0.0     :     - Consolidated library for ESP32-S3-POE-ETH-8DI-8DO [28-06-2026]
  * Rev1.0.1     :     - Fixed Bug TickxxxLED(-1), _writeRegister [28-06-2026 16:52]
+ * Rev1.2.0     :     - Added RTC Real Time Clock support [28-06-2026 17:24]
  * Email        :     uten.boonliam@tenergyinnovation.co.th
  ***********************************************************************/
 
@@ -412,7 +413,7 @@ public:
     static constexpr uint16_t MAX_BUFFER_SIZE = 256;
 
     //library version
-    static constexpr const char* LIBRARY_VERSION = "1.0.1";
+    static constexpr const char* LIBRARY_VERSION = "1.2.0";
 
     // Status codes
     enum Status : uint8_t {
@@ -453,6 +454,31 @@ public:
     void TickPurpleLED(float seconds);
     void TickOrangeLED(float seconds);
     void TickWhiteLED(float seconds);
+
+    // RTC (Real-Time Clock) control
+    /***********************************************************************
+     * FUNCTION:    setRTC
+     * DESCRIPTION: Sets the RTC (Real-Time Clock) time on the ESP32-S3 board.
+     *              This writes the time to the internal RTC chip.
+     * PARAMETERS:  year   - Year (2000-2099)
+     *              month  - Month (1-12)
+     *              day    - Day of month (1-31)
+     *              hour   - Hour (0-23)
+     *              minute - Minute (0-59)
+     *              second - Second (0-59)
+     * RETURNED:    None
+     ***********************************************************************/
+    void setRTC(int year, int month, int day, int hour, int minute, int second);
+
+    /***********************************************************************
+     * FUNCTION:    getRTC
+     * DESCRIPTION: Reads the current time from the RTC (Real-Time Clock) chip
+     *              and returns it as a formatted string.
+     * PARAMETERS:  None
+     * RETURNED:    String in format "YYYY-MM-DD HH:MM:SS"
+     *              Example: "2026-06-28 15:30:45"
+     ***********************************************************************/
+    String getRTC();
 
     // Interface setup
     bool setupEthernet();
