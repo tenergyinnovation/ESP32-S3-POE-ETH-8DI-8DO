@@ -232,6 +232,7 @@ bool ESP32S3_DO::begin() {
     // Configure TCA9554 as outputs
     _writeRegister(REG_CONFIG, 0x00);  // All pins as outputs
     _writeRegister(REG_OUTPUT_PORT, 0xFF);  // All off initially
+    _outputState = 0xFF;  // ← Sync internal state with hardware!
     
     return isConnected();
 }
@@ -1010,6 +1011,7 @@ void ESP32S3_8DI8DO::setRGBColor(uint8_t red, uint8_t green, uint8_t blue) {
 }
 
 void ESP32S3_8DI8DO::LEDOff() {
+    _ledBlinking = false;  // Stop blinking animation
     _rgb.setColor(0, 0, 0);
 }
 
