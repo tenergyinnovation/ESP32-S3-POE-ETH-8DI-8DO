@@ -2,7 +2,7 @@
 
 Professional Arduino library for the **Waveshare ESP32-S3-POE-ETH-8DI-8DO** industrial-grade board, featuring comprehensive support for Ethernet, RS485/RS422/RS232 communication, CAN bus, and isolated digital I/O.
 
-![ESP32-S3-POE-ETH-8DI-8DO](docs/images/board.jpg)
+![ESP32-S3-POE-ETH-8DI-8DO](https://www.waveshare.com/img/devkit/accBoard/ESP32-S3-POE-ETH-8DI-8DO/ESP32-S3-POE-ETH-8DI-8DO-details-1.jpg)
 
 ## Features
 
