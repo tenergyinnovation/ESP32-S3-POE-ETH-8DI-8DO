@@ -1,0 +1,35 @@
+{
+  "name": "ESP32-S3-POE-ETH-8DI-8DO Board Library",
+  "version": "1.0.0",
+  "description": "Library for Waveshare ESP32-S3-POE-ETH-8DI-8DO Industrial Board with Ethernet, RS485, CAN, Digital I/O",
+  "keywords": [
+    "ESP32-S3",
+    "Industrial",
+    "Ethernet",
+    "RS485",
+    "CAN Bus",
+    "Digital IO",
+    "Waveshare",
+    "IoT"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tenergyinnovation/ESP32-S3-POE-ETH-8DI-8DO_template.git"
+  },
+  "authors": [
+    {
+      "name": "Tenergy Innovation",
+      "email": "tenergy.innovation@gmail.com",
+      "url": "https://tenergy.co.th"
+    }
+  ],
+  "license": "MIT",
+  "homepage": "https://www.waveshare.com/esp32-s3-poe-eth-8di-8do.htm",
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "dependencies": [
+    {
+      "name": "ArduinoJson"
+    }
+  ]
+}
