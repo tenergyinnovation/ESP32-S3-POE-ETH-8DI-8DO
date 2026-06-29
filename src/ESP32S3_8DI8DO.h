@@ -3,10 +3,11 @@
  * Description  :     Unified library for ESP32-S3-POE-ETH-8DI-8DO board
  * Author       :     Tenergy Innovation Co., Ltd.
  * Date         :     28 Jun 2026
- * Revision     :     1.2.0     
+ * Revision     :     1.3.0     
  * Rev1.0.0     :     - Consolidated library for ESP32-S3-POE-ETH-8DI-8DO [28-06-2026]
  * Rev1.0.1     :     - Fixed Bug TickxxxLED(-1), _writeRegister [28-06-2026 16:52]
  * Rev1.2.0     :     - Added RTC Real Time Clock support [28-06-2026 17:24]
+ * Rev1.3.0     :     - Added LoRa_DTU_Example.ino to examples [29-06-2026 07:13]
  * Email        :     uten.boonliam@tenergyinnovation.co.th
  ***********************************************************************/
 
@@ -413,7 +414,7 @@ public:
     static constexpr uint16_t MAX_BUFFER_SIZE = 256;
 
     //library version
-    static constexpr const char* LIBRARY_VERSION = "1.2.0";
+    static constexpr const char* LIBRARY_VERSION = "1.3.0";
 
     // Status codes
     enum Status : uint8_t {
