@@ -23,6 +23,19 @@ const uint8_t ESP32S3_8DI8DO::CAN_RX_PIN = 1;
 constexpr uint8_t ESP32S3_DI::DI_PINS[8];
 
 // ============================================================
+// STATIC TICKER MEMBER INITIALIZATION (for LED animations)
+// ============================================================
+Ticker ESP32S3_RGB::_tickerRed;
+Ticker ESP32S3_RGB::_tickerGreen;
+Ticker ESP32S3_RGB::_tickerBlue;
+Ticker ESP32S3_RGB::_tickerYellow;
+Ticker ESP32S3_RGB::_tickerPurple;
+Ticker ESP32S3_RGB::_tickerOrange;
+Ticker ESP32S3_RGB::_tickerWhite;
+
+ESP32S3_RGB *ESP32S3_RGB::_instance = nullptr;
+
+// ============================================================
 // SECTION 1: DIGITAL INPUT (DI) IMPLEMENTATION
 // ============================================================
 
@@ -560,16 +573,19 @@ bool ESP32S3_RGB::begin() {
     
     _neoPixel->begin();
     _neoPixel->show();  // Initialize with all LEDs off
+    _instance = this;   // Register instance for static Ticker callbacks
     return true;
 }
 
 void ESP32S3_RGB::end() {
+    _stopAllLEDs();  // Detach all Tickers
     if (_neoPixel != nullptr) {
         _neoPixel->clear();
         _neoPixel->show();
         delete _neoPixel;
         _neoPixel = nullptr;
     }
+    _instance = nullptr;  // Clear instance pointer
 }
 
 /***********************************************************************
@@ -662,6 +678,91 @@ void ESP32S3_RGB::stop() {
 }
 
 /***********************************************************************
+ * FUNCTION:    tickRedLED - Ticker-based blinking (non-blocking)
+ * DESCRIPTION: Makes RGB LED blink red using FreeRTOS Ticker.
+ *              Animation runs in background ISR context.
+ * PARAMETERS:  seconds - Blink interval in seconds (ON/OFF each = seconds/2)
+ *              Pass 0 to turn off.
+ * RETURNED:    None
+ ***********************************************************************/
+void ESP32S3_RGB::tickRedLED(float seconds) {
+    if (seconds <= 0) {
+        _stopAllLEDs();
+    } else {
+        _stopAllLEDs();
+        _currentColor = COLOR_RED;
+        _updateLED();
+        _tickerRed.attach(seconds / 2.0, _toggleRedLED);
+    }
+}
+
+void ESP32S3_RGB::tickGreenLED(float seconds) {
+    if (seconds <= 0) {
+        _stopAllLEDs();
+    } else {
+        _stopAllLEDs();
+        _currentColor = COLOR_GREEN;
+        _updateLED();
+        _tickerGreen.attach(seconds / 2.0, _toggleGreenLED);
+    }
+}
+
+void ESP32S3_RGB::tickBlueLED(float seconds) {
+    if (seconds <= 0) {
+        _stopAllLEDs();
+    } else {
+        _stopAllLEDs();
+        _currentColor = COLOR_BLUE;
+        _updateLED();
+        _tickerBlue.attach(seconds / 2.0, _toggleBlueLED);
+    }
+}
+
+void ESP32S3_RGB::tickYellowLED(float seconds) {
+    if (seconds <= 0) {
+        _stopAllLEDs();
+    } else {
+        _stopAllLEDs();
+        _currentColor = COLOR_YELLOW;
+        _updateLED();
+        _tickerYellow.attach(seconds / 2.0, _toggleYellowLED);
+    }
+}
+
+void ESP32S3_RGB::tickPurpleLED(float seconds) {
+    if (seconds <= 0) {
+        _stopAllLEDs();
+    } else {
+        _stopAllLEDs();
+        _currentColor = COLOR_MAGENTA;
+        _updateLED();
+        _tickerPurple.attach(seconds / 2.0, _togglePurpleLED);
+    }
+}
+
+void ESP32S3_RGB::tickOrangeLED(float seconds) {
+    if (seconds <= 0) {
+        _stopAllLEDs();
+    } else {
+        _stopAllLEDs();
+        _currentColor = 0xFF8000;  // Orange: R=255, G=128, B=0
+        _updateLED();
+        _tickerOrange.attach(seconds / 2.0, _toggleOrangeLED);
+    }
+}
+
+void ESP32S3_RGB::tickWhiteLED(float seconds) {
+    if (seconds <= 0) {
+        _stopAllLEDs();
+    } else {
+        _stopAllLEDs();
+        _currentColor = COLOR_WHITE;
+        _updateLED();
+        _tickerWhite.attach(seconds / 2.0, _toggleWhiteLED);
+    }
+}
+
+/***********************************************************************
  * FUNCTION:    ESP32S3_RGB::setBrightness
  * DESCRIPTION: Sets the brightness level of the RGB LED.
  * PARAMETERS:  brightness - Brightness level (0-255, where 0=off, 255=full brightness)
@@ -694,6 +795,41 @@ uint32_t ESP32S3_RGB::_rgbToGrb(uint32_t rgbColor) {
     
     // Return in GRB format for Adafruit_NeoPixel
     return ((uint32_t)g << 16) | ((uint32_t)r << 8) | b;
+}
+
+/***********************************************************************
+ * FUNCTION:    ESP32S3_RGB::_stopAllLEDs
+ * DESCRIPTION: Stops all LED Ticker animations and turns off LED.
+ *              Called before starting a new LED animation.
+ * PARAMETERS:  None
+ * RETURNED:    None
+ ***********************************************************************/
+void ESP32S3_RGB::_stopAllLEDs() {
+    _tickerRed.detach();
+    _tickerGreen.detach();
+    _tickerBlue.detach();
+    _tickerYellow.detach();
+    _tickerPurple.detach();
+    _tickerOrange.detach();
+    _tickerWhite.detach();
+    _currentColor = COLOR_OFF;
+    _updateLED();
+}
+
+/***********************************************************************
+ * FUNCTION:    ESP32S3_RGB::_toggleLED
+ * DESCRIPTION: Toggles LED between a specified color and OFF.
+ *              Called by Ticker callback for blinking animation.
+ * PARAMETERS:  color - Color to toggle to (when switching from OFF)
+ * RETURNED:    None
+ ***********************************************************************/
+void ESP32S3_RGB::_toggleLED(uint32_t color) {
+    if (_currentColor == COLOR_OFF) {
+        _currentColor = color;
+    } else {
+        _currentColor = COLOR_OFF;
+    }
+    _updateLED();
 }
 
 void ESP32S3_RGB::_updateLED() {
@@ -770,6 +906,51 @@ void ESP32S3_RGB::_applyBrightness(uint8_t &r, uint8_t &g, uint8_t &b) {
     r = (r * _brightness) / 255;
     g = (g * _brightness) / 255;
     b = (b * _brightness) / 255;
+}
+
+// ============================================================
+// STATIC TICKER CALLBACK FUNCTIONS (called by Ticker ISR)
+// ============================================================
+void ESP32S3_RGB::_toggleRedLED() {
+    if (_instance != nullptr) {
+        _instance->_toggleLED(COLOR_RED);
+    }
+}
+
+void ESP32S3_RGB::_toggleGreenLED() {
+    if (_instance != nullptr) {
+        _instance->_toggleLED(COLOR_GREEN);
+    }
+}
+
+void ESP32S3_RGB::_toggleBlueLED() {
+    if (_instance != nullptr) {
+        _instance->_toggleLED(COLOR_BLUE);
+    }
+}
+
+void ESP32S3_RGB::_toggleYellowLED() {
+    if (_instance != nullptr) {
+        _instance->_toggleLED(COLOR_YELLOW);
+    }
+}
+
+void ESP32S3_RGB::_togglePurpleLED() {
+    if (_instance != nullptr) {
+        _instance->_toggleLED(COLOR_MAGENTA);
+    }
+}
+
+void ESP32S3_RGB::_toggleOrangeLED() {
+    if (_instance != nullptr) {
+        _instance->_toggleLED(0xFF8000);  // Orange
+    }
+}
+
+void ESP32S3_RGB::_toggleWhiteLED() {
+    if (_instance != nullptr) {
+        _instance->_toggleLED(COLOR_WHITE);
+    }
 }
 
 // ============================================================
@@ -942,9 +1123,7 @@ ESP32S3_8DI8DO::ESP32S3_8DI8DO()
     : _di(), _do(), _rs485(), _rgb(), _buzzer(),
       initialized(false), ethernet_connected(false),
       rs485_enabled(false), can_enabled(false),
-      _status(STATUS_INIT_FAILED),
-      _ledBlinking(false), _ledBlinkColor(0),
-      _ledBlinkStartTime(0), _ledBlinkInterval(0.5) {}
+      _status(STATUS_INIT_FAILED) {}
 
 /***********************************************************************
  * FUNCTION:    ESP32S3_8DI8DO::begin
@@ -1011,7 +1190,7 @@ void ESP32S3_8DI8DO::setRGBColor(uint8_t red, uint8_t green, uint8_t blue) {
 }
 
 void ESP32S3_8DI8DO::LEDOff() {
-    _ledBlinking = false;  // Stop blinking animation
+    // Stop all LED animations (Ticker-based)
     _rgb.setColor(0, 0, 0);
 }
 
@@ -1112,26 +1291,9 @@ void ESP32S3_8DI8DO::loop() {
     _rgb.update();
     _buzzer.update();
     
-    // Handle LED blinking animation
-    if (_ledBlinking) {
-        unsigned long elapsed = millis() - _ledBlinkStartTime;
-        float cycleTime = _ledBlinkInterval * 1000;  // Convert seconds to milliseconds
-        float halfCycle = cycleTime / 2;
-        
-        // Calculate position in blink cycle (0-1)
-        float cyclePos = fmod(elapsed, cycleTime);
-        
-        if (cyclePos < halfCycle) {
-            // LED ON phase
-            uint8_t r = (_ledBlinkColor >> 16) & 0xFF;
-            uint8_t g = (_ledBlinkColor >> 8) & 0xFF;
-            uint8_t b = _ledBlinkColor & 0xFF;
-            _rgb.setColor(r, g, b);
-        } else {
-            // LED OFF phase
-            _rgb.setColor(0, 0, 0);
-        }
-    }
+    // Note: LED blinking animations are now handled by FreeRTOS Ticker in background ISR context.
+    // This is non-blocking and allows the main loop to remain responsive.
+    // See: TickRedLED(), TickGreenLED(), etc. and Ticker callback methods in ESP32S3_RGB class.
 }
 
 void ESP32S3_8DI8DO::configurePins() {
@@ -1169,100 +1331,74 @@ void ESP32S3_8DI8DO::buzzer_beep(int times) {
 
 /***********************************************************************
  * FUNCTION:    ESP32S3_8DI8DO::TickRedLED
- * DESCRIPTION: Makes the RGB LED blink red color at specified interval.
- *              Uses internal timing for periodic on/off cycles.
+ * DESCRIPTION: Makes the RGB LED blink red using Ticker (non-blocking).
+ *              Uses FreeRTOS background timer for efficient animation.
  * PARAMETERS:  seconds - Blink interval in seconds (0.1 to 10.0 recommended)
+ *              Pass 0 to turn off.
  * RETURNED:    None
  ***********************************************************************/
 void ESP32S3_8DI8DO::TickRedLED(float seconds) {
-    _ledBlinkColor = 0xFF0000;  // Red: R=255, G=0, B=0
-    _ledBlinkInterval = seconds;
-    _ledBlinking = true;
-    _ledBlinkStartTime = millis();
+    _rgb.tickRedLED(seconds);
 }
 
 /***********************************************************************
  * FUNCTION:    ESP32S3_8DI8DO::TickGreenLED
- * DESCRIPTION: Makes the RGB LED blink green color at specified interval.
- *              Uses internal timing for periodic on/off cycles.
- * PARAMETERS:  seconds - Blink interval in seconds (0.1 to 10.0 recommended)
+ * DESCRIPTION: Makes the RGB LED blink green using Ticker (non-blocking).
+ * PARAMETERS:  seconds - Blink interval in seconds
  * RETURNED:    None
  ***********************************************************************/
 void ESP32S3_8DI8DO::TickGreenLED(float seconds) {
-    _ledBlinkColor = 0x00FF00;  // Green: R=0, G=255, B=0
-    _ledBlinkInterval = seconds;
-    _ledBlinking = true;
-    _ledBlinkStartTime = millis();
+    _rgb.tickGreenLED(seconds);
 }
 
 /***********************************************************************
  * FUNCTION:    ESP32S3_8DI8DO::TickBlueLED
- * DESCRIPTION: Makes the RGB LED blink blue color at specified interval.
- *              Uses internal timing for periodic on/off cycles.
- * PARAMETERS:  seconds - Blink interval in seconds (0.1 to 10.0 recommended)
+ * DESCRIPTION: Makes the RGB LED blink blue using Ticker (non-blocking).
+ * PARAMETERS:  seconds - Blink interval in seconds
  * RETURNED:    None
  ***********************************************************************/
 void ESP32S3_8DI8DO::TickBlueLED(float seconds) {
-    _ledBlinkColor = 0x0000FF;  // Blue: R=0, G=0, B=255
-    _ledBlinkInterval = seconds;
-    _ledBlinking = true;
-    _ledBlinkStartTime = millis();
+    _rgb.tickBlueLED(seconds);
 }
 
 /***********************************************************************
  * FUNCTION:    ESP32S3_8DI8DO::TickYellowLED
- * DESCRIPTION: Makes the RGB LED blink yellow color at specified interval.
- *              Uses internal timing for periodic on/off cycles.
- * PARAMETERS:  seconds - Blink interval in seconds (0.1 to 10.0 recommended)
+ * DESCRIPTION: Makes the RGB LED blink yellow using Ticker (non-blocking).
+ * PARAMETERS:  seconds - Blink interval in seconds
  * RETURNED:    None
  ***********************************************************************/
 void ESP32S3_8DI8DO::TickYellowLED(float seconds) {
-    _ledBlinkColor = 0xFFFF00;  // Yellow: R=255, G=255, B=0
-    _ledBlinkInterval = seconds;
-    _ledBlinking = true;
-    _ledBlinkStartTime = millis();
+    _rgb.tickYellowLED(seconds);
 }
 
 /***********************************************************************
  * FUNCTION:    ESP32S3_8DI8DO::TickPurpleLED
- * DESCRIPTION: Makes the RGB LED blink purple color at specified interval.
- *              Uses internal timing for periodic on/off cycles.
- * PARAMETERS:  seconds - Blink interval in seconds (0.1 to 10.0 recommended)
+ * DESCRIPTION: Makes the RGB LED blink purple using Ticker (non-blocking).
+ * PARAMETERS:  seconds - Blink interval in seconds
  * RETURNED:    None
  ***********************************************************************/
 void ESP32S3_8DI8DO::TickPurpleLED(float seconds) {
-    _ledBlinkColor = 0xFF00FF;  // Purple: R=255, G=0, B=255
-    _ledBlinkInterval = seconds;
-    _ledBlinking = true;
-    _ledBlinkStartTime = millis();
+    _rgb.tickPurpleLED(seconds);
 }
 
 /***********************************************************************
  * FUNCTION:    ESP32S3_8DI8DO::TickOrangeLED
- * DESCRIPTION: Makes the RGB LED blink orange color at specified interval.
- *              Uses internal timing for periodic on/off cycles.
- * PARAMETERS:  seconds - Blink interval in seconds (0.1 to 10.0 recommended)
+ * DESCRIPTION: Makes the RGB LED blink orange using Ticker (non-blocking).
+ * PARAMETERS:  seconds - Blink interval in seconds
  * RETURNED:    None
  ***********************************************************************/
 void ESP32S3_8DI8DO::TickOrangeLED(float seconds) {
-    _ledBlinkColor = 0xFF8000;  // Orange: R=255, G=128, B=0
-    _ledBlinkInterval = seconds;
-    _ledBlinking = true;
-    _ledBlinkStartTime = millis();
+    _rgb.tickOrangeLED(seconds);
 }
 
 /***********************************************************************
  * FUNCTION:    ESP32S3_8DI8DO::TickWhiteLED
- * DESCRIPTION: Makes the RGB LED blink white color at specified interval.
- *              Uses internal timing for periodic on/off cycles.
- * PARAMETERS:  seconds - Blink interval in seconds (0.1 to 10.0 recommended)
+ * DESCRIPTION: Makes the RGB LED blink white using Ticker (non-blocking).
+ * PARAMETERS:  seconds - Blink interval in seconds
  * RETURNED:    None
  ***********************************************************************/
 void ESP32S3_8DI8DO::TickWhiteLED(float seconds) {
-    _ledBlinkColor = 0xFFFFFF;  // White: R=255, G=255, B=255
-    _ledBlinkInterval = seconds;
-    _ledBlinking = true;
-    _ledBlinkStartTime = millis();
+    _rgb.tickWhiteLED(seconds);
 }
 
 // ============================================================

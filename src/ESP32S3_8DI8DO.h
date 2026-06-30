@@ -3,11 +3,12 @@
  * Description  :     Unified library for ESP32-S3-POE-ETH-8DI-8DO board
  * Author       :     Tenergy Innovation Co., Ltd.
  * Date         :     28 Jun 2026
- * Revision     :     1.3.0     
+ * Revision     :     1.4.0     
  * Rev1.0.0     :     - Consolidated library for ESP32-S3-POE-ETH-8DI-8DO [28-06-2026]
  * Rev1.0.1     :     - Fixed Bug TickxxxLED(-1), _writeRegister [28-06-2026 16:52]
  * Rev1.2.0     :     - Added RTC Real Time Clock support [28-06-2026 17:24]
  * Rev1.3.0     :     - Added LoRa_DTU_Example.ino to examples [29-06-2026 07:13]
+ * Rev1.4.0     :     - Upgraded Tick*LED to use FreeRTOS Ticker for non-blocking animations [30-06-2026]
  * Email        :     uten.boonliam@tenergyinnovation.co.th
  ***********************************************************************/
 
@@ -17,6 +18,7 @@
 #include <HardwareSerial.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
+#include <Ticker.h>
 
 /**
  * ============================================================
@@ -281,6 +283,15 @@ public:
     void strobe(uint32_t color, uint8_t speed = 5);
     void breathe(uint32_t color, uint16_t period = 2000);
     void stop();
+    
+    // Ticker-based blinking animations (non-blocking background execution)
+    void tickRedLED(float seconds);      // Blink red using Ticker
+    void tickGreenLED(float seconds);    // Blink green using Ticker
+    void tickBlueLED(float seconds);     // Blink blue using Ticker
+    void tickYellowLED(float seconds);   // Blink yellow using Ticker
+    void tickPurpleLED(float seconds);   // Blink purple/magenta using Ticker
+    void tickOrangeLED(float seconds);   // Blink orange using Ticker
+    void tickWhiteLED(float seconds);    // Blink white using Ticker
 
     // Animation control
     void setAnimationMode(AnimationMode mode) { _animMode = mode; }
@@ -307,6 +318,27 @@ private:
     // NeoPixel object pointer for WS2812B LED
     Adafruit_NeoPixel *_neoPixel;
 
+    // Ticker objects for background LED animations (one for each color)
+    static Ticker _tickerRed;
+    static Ticker _tickerGreen;
+    static Ticker _tickerBlue;
+    static Ticker _tickerYellow;
+    static Ticker _tickerPurple;
+    static Ticker _tickerOrange;
+    static Ticker _tickerWhite;
+
+    // Static callback functions for Ticker interrupts
+    static void _toggleRedLED();
+    static void _toggleGreenLED();
+    static void _toggleBlueLED();
+    static void _toggleYellowLED();
+    static void _togglePurpleLED();
+    static void _toggleOrangeLED();
+    static void _toggleWhiteLED();
+
+    // Static pointer to current instance for callback access
+    static ESP32S3_RGB *_instance;
+
     // Helper methods
     void _initializeGPIO();
     void _updateLED();
@@ -314,6 +346,12 @@ private:
     
     // RGB to GRB conversion for NeoPixel
     uint32_t _rgbToGrb(uint32_t rgbColor);
+    
+    // Stop all LED animations (called before starting new animation)
+    void _stopAllLEDs();
+    
+    // Internal toggle method
+    void _toggleLED(uint32_t color);
 };
 
 /**
@@ -414,7 +452,7 @@ public:
     static constexpr uint16_t MAX_BUFFER_SIZE = 256;
 
     //library version
-    static constexpr const char* LIBRARY_VERSION = "1.3.0";
+    static constexpr const char* LIBRARY_VERSION = "1.4.0";
 
     // Status codes
     enum Status : uint8_t {
@@ -526,12 +564,6 @@ private:
     bool rs485_enabled;
     bool can_enabled;
     Status _status;
-
-    // LED Animation State
-    bool _ledBlinking;
-    uint32_t _ledBlinkColor;
-    unsigned long _ledBlinkStartTime;
-    float _ledBlinkInterval;
 
     // Helper methods
     void configurePins();
